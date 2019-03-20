@@ -1,0 +1,12 @@
+FROM node:9.5.0
+MAINTAINER Ilya Shmelev <ishmelev23@gmail.com>
+
+RUN apt-get update \
+    && apt-get install -y mongodb \
+    && git clone https://github.com/CryptoLions/EOS-mongo-history-API \
+    && cd EOS-mongo-history-API && npm install
+
+WORKDIR ./EOS-mongo-history-API
+
+ENTRYPOINT ["node", "./index.js"]
+

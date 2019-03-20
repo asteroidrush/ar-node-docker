@@ -1,0 +1,106 @@
+version: "3"
+
+services:
+
+  nodeos:
+    build:
+      context: ./
+      dockerfile: dockerfiles/Dockerfile.Node
+      args:
+        - version=$VERSION
+    image: asteroid_rush/nodeos:$VERSION
+    hostname: nodeos
+    ports:
+      - 8210:8010
+      - 8212:8012
+      - 127.0.0.1:8213:8013
+    expose:
+      - "8010"
+      - "8012"
+      - "8013"
+    networks:
+      - asteroid_rush/prod
+    depends_on:
+      - mongodb
+    volumes:
+      - ./data/nodeos/:/opt/eosio/bin/data-dir
+      - $HTTPS_CERTS_DIR:/certs/:ro
+    cap_add:
+      - IPC_LOCK
+    stop_grace_period: 10m
+
+  nodeos-clean:
+      build:
+        context: ./
+        dockerfile: dockerfiles/Dockerfile.Node
+        args:
+          - version=$VERSION
+      image: asteroid_rush/nodeos:$VERSION
+      hostname: nodeos
+      command: --genesis-json=/opt/eosio/bin/data-dir/genesis.json --delete-all-blocks --hard-replay
+      ports:
+        - 8210:8010
+        - 8212:8012
+        - 127.0.0.1:8213:8013
+      expose:
+        - "8010"
+        - "8012"
+        - "8013"
+      networks:
+        - asteroid_rush/prod
+      depends_on:
+        - mongodb
+      volumes:
+        - ./data/nodeos/:/opt/eosio/bin/data-dir
+        - $HTTPS_CERTS_DIR:/certs/:ro
+      cap_add:
+        - IPC_LOCK
+      stop_grace_period: 10m
+
+  keos:
+    build:
+      context: ./
+      dockerfile: dockerfiles/Dockerfile.Keos
+      args:
+        - version=$VERSION
+    image: asteroid_rush/keos:$VERSION
+    hostname: keos
+    ports:
+        - 127.0.0.1:8220:8020
+    expose:
+        - "8020"
+    networks:
+      - asteroid_rush/prod
+    volumes:
+      - ./data/keos/:/opt/eosio/bin/data-dir
+    stop_grace_period: 10m
+
+  mongodb:
+    image: mongo
+    hostname: mongodb
+    env_file:
+      - ./.env
+    networks:  
+      - asteroid_rush/prod
+  
+  mongodb-api:
+    build:
+      context: ./
+      dockerfile: dockerfiles/Dockerfile.MongodDBHistoryApi
+      args:
+        - version=$VERSION
+    image: asteroid_rush/mongodb_api
+    depends_on:
+      - mongodb
+    ports:
+      - 8230:8711
+    expose: 
+      - "8711"
+    networks:
+      - asteroid_rush/prod
+    volumes:
+      - ./mongo.config.js:/EOS-mongo-history-API/config.js
+
+networks:
+  asteroid_rush/prod:
+    driver: bridge
